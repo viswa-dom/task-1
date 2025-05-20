@@ -1,8 +1,6 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
-import { Box, Button, FormControl, FormLabel, Input, VStack, Heading, Text, Divider } from '@chakra-ui/react';
+import { useEffect, useState } from 'react';
+import './App.css';
+import { Box, Button, FormControl, FormLabel, Input, VStack, Heading, Text, Divider, HStack } from '@chakra-ui/react';
 
 type DisplayData = {
   displayName: string;
@@ -12,31 +10,47 @@ type DisplayData = {
   alias: string;
 };
 
-function App() {
+const LOCAL_STORAGE_KEY = 'submittedDisplays';
 
-  const [formData, setformData] = useState<DisplayData>({
+function App() {
+  const [formData, setFormData] = useState<DisplayData>({
     displayName: '',
     displayBrand: '',
     country: '',
     organization: '',
     alias: ''
   });
+
+  const [submittedData, setSubmittedData] = useState<DisplayData[]>([]);
+
+  // Load submitted data from localStorage on initial render
+  useEffect(() => {
+    const storedData = localStorage.getItem(LOCAL_STORAGE_KEY);
+    if (storedData) {
+      setSubmittedData(JSON.parse(storedData));
+    }
+  }, []);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setformData((prev) => ({
+    setFormData((prev) => ({
       ...prev,
       [name]: value,
     }));
   };
+
   const handleSubmit = () => {
-  const isEmptyField = Object.values(formData).some(value => value.trim() === '');
-  
-  if (isEmptyField) {
-    alert('Please fill in all fields before submitting.');
-    return;
-  }
-    setSubmittedData((prev) => [...prev, formData]);
-    setformData({
+    const isEmptyField = Object.values(formData).some(value => value.trim() === '');
+    if (isEmptyField) {
+      alert('Please fill in all fields before submitting.');
+      return;
+    }
+
+    const updatedData = [...submittedData, formData];
+    setSubmittedData(updatedData);
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updatedData));
+
+    setFormData({
       displayName: '',
       displayBrand: '',
       country: '',
@@ -45,23 +59,25 @@ function App() {
     });
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) =>{
-    if(e.key === 'Enter'){
+  const handleRemove = (indexToRemove: number) => {
+    const updatedData = submittedData.filter((_, index) => index !== indexToRemove);
+    setSubmittedData(updatedData);
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updatedData));
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
       handleSubmit();
     }
-  }
-
-  const [submittedData, setSubmittedData] = useState<DisplayData[]>([]);
-
-
+  };
 
   return (
-    <Box>
-      <Heading>Display Registration Form</Heading>
-      <VStack className='vstack'>
+    <Box p={5}>
+      <Heading mb={4}>Display Registration Form</Heading>
+      <VStack spacing={4} align="stretch" className='vstack'>
         <FormControl>
           <FormLabel>Display Name</FormLabel>
-          <Input name="displayName" value={formData.displayName} onChange={handleChange} onKeyDown={handleKeyDown}/>
+          <Input name="displayName" value={formData.displayName} onChange={handleChange} onKeyDown={handleKeyDown} />
         </FormControl>
         <FormControl>
           <FormLabel>Display Brand</FormLabel>
@@ -79,23 +95,32 @@ function App() {
           <FormLabel>Alias</FormLabel>
           <Input name="alias" value={formData.alias} onChange={handleChange} onKeyDown={handleKeyDown} />
         </FormControl>
-        <Button onClick={handleSubmit}>
+        <Button colorScheme="blue" onClick={handleSubmit} className='button'>
           Submit
         </Button>
+
         <Divider />
-        <Heading>Submitted Displays</Heading>
-        {submittedData.map((item, index) => (
-          <Box key={index} p={3} borderWidth="1px" borderRadius="md" mb={3} className='box'>
-            <Text><strong>Name:</strong> {item.displayName}</Text>
-            <Text><strong>Brand:</strong> {item.displayBrand}</Text>
-            <Text><strong>Country:</strong> {item.country}</Text>
-            <Text><strong>Organization:</strong> {item.organization}</Text>
-            <Text><strong>Alias:</strong> {item.alias}</Text>
-          </Box>
-        ))}
+
+        <Heading size="md" mt={4}>Submitted Displays</Heading>
+        {submittedData.length === 0 ? (
+          <Text>No displays submitted yet.</Text>
+        ) : (
+          submittedData.map((item, index) => (
+            <Box key={index} p={3} borderWidth="1px" borderRadius="md" mb={3} className='box'>
+              <Text><strong>Name:</strong> {item.displayName}</Text>
+              <Text><strong>Brand:</strong> {item.displayBrand}</Text>
+              <Text><strong>Country:</strong> {item.country}</Text>
+              <Text><strong>Organization:</strong> {item.organization}</Text>
+              <Text><strong>Alias:</strong> {item.alias}</Text>
+              <HStack justify="flex-end" mt={2}>
+                <Button size="sm" colorScheme="red" onClick={() => handleRemove(index)}>Remove</Button>
+              </HStack>
+            </Box>
+          ))
+        )}
       </VStack>
     </Box>
-  )
+  );
 }
 
-export default App
+export default App;
